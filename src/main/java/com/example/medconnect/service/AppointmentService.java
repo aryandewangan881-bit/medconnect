@@ -1,11 +1,16 @@
 package com.example.medconnect.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.example.medconnect.dto.AppointmentRequest;
 import com.example.medconnect.dto.AppointmentResponse;
@@ -35,6 +40,11 @@ public class AppointmentService {
                 .orElseThrow(() -> new RuntimeException("Logged in user not found"));
     }
     
+    private ResponseStatusException bad(String msg) {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, msg);
+    }
+    
+    
     private Doctor getLoggedInDoctor() {
         User user = getLoggedInUser();
         return doctorRepository.findByUserId(user.getId())
@@ -46,7 +56,7 @@ public class AppointmentService {
         Doctor doctor = getLoggedInDoctor();
         List<Appointment> list = (status == null)
                 ? appointmentRepository.findByDoctorId(doctor.getId())
-                : appointmentRepository.findByDoctorIdAndStatus(doctor.getId(), status);
+                : appointmentRepository.findByDoctorIdAndStatus(doctor.getId(),status);
         return list.stream().map(this::mapToResponse).collect(Collectors.toList());
         
     }
@@ -73,6 +83,25 @@ public class AppointmentService {
         Doctor doctor = doctorRepository.findById(request.getDoctorId())
                 .orElseThrow(() -> new RuntimeException("Doctor not found with id: " + request.getDoctorId()));
 
+        if (!Boolean.TRUE.equals(doctor.getIsActive())) {
+            throw bad("Ye doctor abhi available nahi hai");
+        }
+
+        LocalDate date = request.getAppointmentDate();
+        LocalTime time = request.getAppointmentTime();
+        if (date == null || time == null) {
+            throw bad("Date aur time zaroori hai");
+        }
+
+        if (LocalDateTime.of(date, time).isBefore(LocalDateTime.now())) {
+            throw bad("Past ke time ki appointment book nahi ho sakti");
+        }
+
+        LocalTime from = doctor.getAvailableFrom();
+        LocalTime to = doctor.getAvailableTo();
+        if (from != null && to != null && (time.isBefore(from) || !time.isBefore(to))) {
+            throw bad("Doctor sirf " + from + " se " + to + " ke beech available hai");
+        }
         // Double-booking check
         List<Appointment> existing = appointmentRepository
                 .findByDoctorIdAndAppointmentDateAndAppointmentTime(

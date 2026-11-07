@@ -1,7 +1,7 @@
 spring.application.name=medconnect
 spring.datasource.url=jdbc:postgresql://localhost:5432/medconnect
 spring.datasource.username=postgres
-spring.datasource.password=Aryan@9343
+spring.datasource.password=password
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 spring.jpa.hibernate.ddl-auto=update

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.medconnect.dto.AdminDoctorRequest;
 import com.example.medconnect.dto.DoctorRequest;
 import com.example.medconnect.dto.DoctorResponse;
 import com.example.medconnect.service.DoctorService;
@@ -46,5 +47,10 @@ public class DoctorController {
 	    @GetMapping("/{id}")
 	    public ResponseEntity<DoctorResponse> getDoctorById(@PathVariable Long id) {
 	        return ResponseEntity.ok(doctorService.getDoctorById(id));
+	    }
+	    
+	    @PostMapping("/create-with-user")
+	    public ResponseEntity<DoctorResponse> createWithUser(@RequestBody AdminDoctorRequest request) {
+	        return ResponseEntity.ok(doctorService.createDoctorWithUser(request));
 	    }
 }

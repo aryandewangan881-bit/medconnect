@@ -4,14 +4,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.example.medconnect.dto.AdminDoctorRequest;
 import com.example.medconnect.dto.DoctorRequest;
 import com.example.medconnect.dto.DoctorResponse;
 import com.example.medconnect.entity.Doctor;
 import com.example.medconnect.entity.User;
 import com.example.medconnect.repository.DoctorRepository;
 import com.example.medconnect.repository.UserRepository;
+
+import jakarta.transaction.Transactional;
 @Service
 public class DoctorService {
 
@@ -21,6 +25,9 @@ public class DoctorService {
 
 	    @Autowired
 	    private UserRepository userRepository;
+	    
+	    @Autowired
+	    private PasswordEncoder passwordEncoder;
 
 	    // Naya doctor add karna
 	    public DoctorResponse addDoctor(DoctorRequest request) {
@@ -84,5 +91,32 @@ public class DoctorService {
 	                doctor.getAvailableTo(),
 	                doctor.getIsActive()
 	        );
+	    }
+	    
+	    @Transactional
+	    public DoctorResponse createDoctorWithUser(AdminDoctorRequest r) {
+	        if (userRepository.findByEmail(r.getEmail()).isPresent()) {
+	            throw new RuntimeException("Email already registered");
+	        }
+
+	        User user = new User();
+	        user.setName(r.getName());
+	        user.setEmail(r.getEmail());
+	        user.setPassword(passwordEncoder.encode(r.getPassword()));
+	        user.setPhone(r.getPhone());
+	        user.setRole(User.Role.DOCTOR);
+	        userRepository.save(user);
+
+	        Doctor doctor = new Doctor();
+	        doctor.setUser(user);
+	        doctor.setSpecialization(r.getSpecialization());
+	        doctor.setQualification(r.getQualification());
+	        doctor.setExperienceYears(r.getExperienceYears() == null ? 0 : r.getExperienceYears());
+	        doctor.setConsultationFee(r.getConsultationFee());
+	        doctor.setAvailableFrom(r.getAvailableFrom());
+	        doctor.setAvailableTo(r.getAvailableTo());
+	        doctor.setIsActive(true);
+
+	        return mapToResponse(doctorRepository.save(doctor));
 	    }
 }
